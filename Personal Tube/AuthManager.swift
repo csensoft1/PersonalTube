@@ -49,6 +49,10 @@ final class AuthManager: ObservableObject {
                 return
             }
             self.state = (result?.user != nil) ? .signedIn : .signedOut
+            YouTubeAPI.shared.accessTokenProvider = { [weak self] in
+                self?.accessToken()   // your existing method that returns tokenString
+            }
+
         }
     }
 
