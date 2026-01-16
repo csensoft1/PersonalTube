@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A66EBAF22F1A5AD2009589CA /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = A66EBAF12F1A5AD2009589CA /* GoogleSignIn */; };
+		A66EBAF42F1A5AD2009589CA /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = A66EBAF32F1A5AD2009589CA /* GoogleSignInSwift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		A66EBAD02F1A5262009589CA /* Personal Tube.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Personal Tube.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +28,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A66EBAF22F1A5AD2009589CA /* GoogleSignIn in Frameworks */,
+				A66EBAF42F1A5AD2009589CA /* GoogleSignInSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +72,8 @@
 			);
 			name = "Personal Tube";
 			packageProductDependencies = (
+				A66EBAF12F1A5AD2009589CA /* GoogleSignIn */,
+				A66EBAF32F1A5AD2009589CA /* GoogleSignInSwift */,
 			);
 			productName = "Personal Tube";
 			productReference = A66EBAD02F1A5262009589CA /* Personal Tube.app */;
@@ -94,6 +103,9 @@
 			);
 			mainGroup = A66EBAC72F1A5262009589CA;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A66EBAF02F1A5AD2009589CA /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A66EBAD12F1A5262009589CA /* Products */;
 			projectDirPath = "";
@@ -256,6 +268,7 @@
 				DEVELOPMENT_TEAM = VZ2KBR38DQ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Personal-Tube-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -288,6 +301,7 @@
 				DEVELOPMENT_TEAM = VZ2KBR38DQ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Personal-Tube-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -332,6 +346,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A66EBAF02F1A5AD2009589CA /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A66EBAF12F1A5AD2009589CA /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A66EBAF02F1A5AD2009589CA /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		A66EBAF32F1A5AD2009589CA /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A66EBAF02F1A5AD2009589CA /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A66EBAC82F1A5262009589CA /* Project object */;
 }

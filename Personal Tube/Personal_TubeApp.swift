@@ -9,9 +9,15 @@ import SwiftUI
 
 @main
 struct Personal_TubeApp: App {
+    @StateObject private var auth = AuthManager()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootGateView()
+                .onAppear {
+                    print(Bundle.main.object(forInfoDictionaryKey: "GIDClientID") ?? "missing")
+                }
+                .environmentObject(auth)
         }
     }
 }
