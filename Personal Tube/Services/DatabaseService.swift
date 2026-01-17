@@ -7,6 +7,12 @@
 import Foundation
 import SQLite3
 
+struct ProfileSources {
+    let channelIds: [String]
+    let playlistIds: [String]
+    let includeLikes: Bool
+}
+
 final class AppDB {
     static let shared = AppDB()
 
@@ -63,6 +69,12 @@ final class AppDB {
           playlistId TEXT NOT NULL,
           createdAt TEXT NOT NULL,
           FOREIGN KEY(profileId) REFERENCES Profiles(id) ON DELETE CASCADE
+        );
+        
+        CREATE TABLE IF NOT EXISTS ProfileFeedCache (
+          profileId TEXT PRIMARY KEY,
+          fetchedAt TEXT NOT NULL,
+          json TEXT NOT NULL
         );
 
         CREATE UNIQUE INDEX IF NOT EXISTS IX_ProfileSubscriptions_UQ ON ProfileSubscriptions(profileId, channelId);
@@ -195,3 +207,103 @@ final class AppDB {
 
 private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
+extension AppDB {
+    func loadFeedCache(profileId: String) throws -> [FeedVideo]? {
+        let sql = "SELECT json FROM ProfileFeedCache WHERE profileId = ?;"
+        var stmt: OpaquePointer?
+        defer { sqlite3_finalize(stmt) }
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return nil }
+        bindText(stmt, 1, profileId)
+
+        guard sqlite3_step(stmt) == SQLITE_ROW,
+              let cstr = sqlite3_column_text(stmt, 0)
+        else { return nil }
+
+        let json = String(cString: cstr)
+        let data = Data(json.utf8)
+        return try JSONDecoder().decode([FeedVideo].self, from: data)
+    }
+
+    func saveFeedCache(profileId: String, feed: [FeedVideo]) throws {
+        let now = ISO8601DateFormatter().string(from: Date())
+        let data = try JSONEncoder().encode(feed)
+        let json = String(data: data, encoding: .utf8) ?? "[]"
+
+        try exec("BEGIN;")
+        do {
+            try run(
+                """
+                INSERT INTO ProfileFeedCache (profileId, fetchedAt, json)
+                VALUES (?, ?, ?)
+                ON CONFLICT(profileId) DO UPDATE SET fetchedAt=excluded.fetchedAt, json=excluded.json;
+                """,
+                binds: { stmt in
+                    bindText(stmt, 1, profileId)
+                    bindText(stmt, 2, now)
+                    bindText(stmt, 3, json)
+                }
+            )
+            try exec("COMMIT;")
+        } catch {
+            try? exec("ROLLBACK;")
+            throw error
+        }
+    }
+}
+
+extension AppDB {
+
+    func loadProfileSources(profileId: String) throws -> ProfileSources {
+        // Channels
+        let channelIds = try querySingleColumn(
+            sql: "SELECT channelId FROM ProfileSubscriptions WHERE profileId = ?;",
+            profileId: profileId
+        )
+
+        // Playlists
+        let playlistIds = try querySingleColumn(
+            sql: "SELECT playlistId FROM ProfilePlaylists WHERE profileId = ?;",
+            profileId: profileId
+        )
+
+        // Include likes if user has configured at least one liked video OR
+        // (If you want likes always, just set to true)
+        let includeLikes = try exists(
+            sql: "SELECT 1 FROM ProfileLikedVideos WHERE profileId = ? LIMIT 1;",
+            profileId: profileId
+        )
+
+        return ProfileSources(channelIds: channelIds, playlistIds: playlistIds, includeLikes: includeLikes)
+    }
+
+    private func querySingleColumn(sql: String, profileId: String) throws -> [String] {
+        var stmt: OpaquePointer?
+        defer { sqlite3_finalize(stmt) }
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw NSError(domain: "DB", code: 10, userInfo: [NSLocalizedDescriptionKey: "prepare failed"])
+        }
+        bindText(stmt, 1, profileId)
+
+        var results: [String] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            if let cstr = sqlite3_column_text(stmt, 0) {
+                results.append(String(cString: cstr))
+            }
+        }
+        return results
+    }
+
+    private func exists(sql: String, profileId: String) throws -> Bool {
+        var stmt: OpaquePointer?
+        defer { sqlite3_finalize(stmt) }
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw NSError(domain: "DB", code: 11, userInfo: [NSLocalizedDescriptionKey: "prepare failed"])
+        }
+        bindText(stmt, 1, profileId)
+
+        return sqlite3_step(stmt) == SQLITE_ROW
+    }
+}

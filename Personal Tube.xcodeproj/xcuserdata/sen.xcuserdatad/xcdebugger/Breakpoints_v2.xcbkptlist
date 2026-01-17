@@ -66,36 +66,6 @@
             endingLineNumber = "76"
             landmarkName = "fetchAllSubscriptions(maxPerPage:)"
             landmarkType = "7">
-            <Locations>
-               <Location
-                  uuid = "A762CC9A-5D44-4F9A-95F2-90DB8FDBCBD4 - aba1a81de28c696b"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "(1) suspend resume partial function for Personal_Tube.YouTubeAPI.fetchAllSubscriptions(maxPerPage: Swift.Int) async throws -&gt; Swift.Array&lt;Personal_Tube.ChannelItem&gt;"
-                  moduleName = "Personal Tube.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/sen/Desktop/xcode/Personal%20Tube/Personal%20Tube/Services/YouTubeAPI.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "76"
-                  endingLineNumber = "76">
-               </Location>
-               <Location
-                  uuid = "A762CC9A-5D44-4F9A-95F2-90DB8FDBCBD4 - 7ec8e9a6e63ae589"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "(3) suspend resume partial function for Personal_Tube.YouTubeAPI.fetchAllSubscriptions(maxPerPage: Swift.Int) async throws -&gt; Swift.Array&lt;Personal_Tube.ChannelItem&gt;"
-                  moduleName = "Personal Tube.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/sen/Desktop/xcode/Personal%20Tube/Personal%20Tube/Services/YouTubeAPI.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "76"
-                  endingLineNumber = "76">
-               </Location>
-            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -144,36 +114,6 @@
             endingLineNumber = "24"
             landmarkName = "makeRequest(url:)"
             landmarkType = "7">
-            <Locations>
-               <Location
-                  uuid = "D756C49A-B0CD-4612-A7C2-13CBA5F4A05E - 2fbcac3e43c497b9"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "Personal_Tube.YouTubeAPI.makeRequest(url: Foundation.URL) throws -&gt; Foundation.URLRequest"
-                  moduleName = "Personal Tube.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/sen/Desktop/xcode/Personal%20Tube/Personal%20Tube/Services/YouTubeAPI.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "24"
-                  endingLineNumber = "24">
-               </Location>
-               <Location
-                  uuid = "D756C49A-B0CD-4612-A7C2-13CBA5F4A05E - 2fbcac3e43c497b9"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "Personal_Tube.YouTubeAPI.makeRequest(url: Foundation.URL) throws -&gt; Foundation.URLRequest"
-                  moduleName = "Personal Tube.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/sen/Desktop/xcode/Personal%20Tube/Personal%20Tube/Services/YouTubeAPI.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "24"
-                  endingLineNumber = "24">
-               </Location>
-            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -254,36 +194,6 @@
             endingLineNumber = "22"
             landmarkName = "bootstrap()"
             landmarkType = "7">
-            <Locations>
-               <Location
-                  uuid = "71BF2206-C706-4FA8-BF14-3A248B0DE3C4 - 3eafd4813821afcf"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "closure #1 (Swift.CheckedContinuation&lt;(), Swift.Never&gt;) -&gt; () in Personal_Tube.AuthManager.bootstrap() async -&gt; ()"
-                  moduleName = "Personal Tube.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/sen/Desktop/xcode/Personal%20Tube/Personal%20Tube/AuthManager.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "22"
-                  endingLineNumber = "22">
-               </Location>
-               <Location
-                  uuid = "71BF2206-C706-4FA8-BF14-3A248B0DE3C4 - d6efb8b9e36438b3"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "closure #1 @Sendable (Swift.Optional&lt;__C.GIDGoogleUser&gt;, Swift.Optional&lt;Swift.Error&gt;) -&gt; () in closure #1 (Swift.CheckedContinuation&lt;(), Swift.Never&gt;) -&gt; () in Personal_Tube.AuthManager.bootstrap() async -&gt; ()"
-                  moduleName = "Personal Tube.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/sen/Desktop/xcode/Personal%20Tube/Personal%20Tube/AuthManager.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "22"
-                  endingLineNumber = "22">
-               </Location>
-            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
