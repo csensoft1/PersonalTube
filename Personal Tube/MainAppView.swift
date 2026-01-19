@@ -12,6 +12,9 @@ struct MainAppView: View {
 
     @StateObject private var vm = ProfileFeedVM()
     @State private var showProfilePicker = false
+    @State private var showAddProfile = false
+    @State private var showEditProfile = false
+    @StateObject private var profilesVM = ProfilesVM()
 
     var body: some View {
         NavigationStack {
@@ -24,32 +27,76 @@ struct MainAppView: View {
                     }
 
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            Task { await refreshNow() }
+                        Menu {
+                            // Refresh action
+                            Button {
+                                Task { await refreshNow() }
+                            } label: {
+                                if vm.isRefreshing {
+                                    Label("Refreshing…", systemImage: "arrow.clockwise")
+                                } else {
+                                    Label("Refresh", systemImage: "arrow.clockwise")
+                                }
+                            }
+                            .disabled(vm.isRefreshing || profileSession.selectedProfileId.isEmpty)
+                            
+                            // Add profile action
+                            Button {
+                                showAddProfile = true
+                            } label: {
+                                Label("Add Profile", systemImage: "person.badge.plus")
+                            }
+
+                            // Edit profile action
+                            Button {
+                                showEditProfile = true
+                            } label: {
+                                Label("Edit Profile", systemImage: "pencil")
+                            }
+                            .disabled(profileSession.selectedProfileId.isEmpty)
+
+                            // Sign out action
+                            Button(role: .destructive) {
+                                profileSession.clear()
+                                auth.signOut()
+                            } label: {
+                                Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                            }
                         } label: {
                             if vm.isRefreshing {
+                                // Show spinner in the menu trigger to mirror iMessage behavior during activity
                                 ProgressView()
                             } else {
-                                Image(systemName: "arrow.clockwise")
+                                HStack(spacing: 2) {
+                                    Image(systemName: "line.3.horizontal.circle.fill")
+                                }
+                                .accessibilityLabel("More")
                             }
-                        }
-                        .disabled(vm.isRefreshing || profileSession.selectedProfileId.isEmpty)
-                    }
-
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("Sign out") {
-                            profileSession.clear()
-                            auth.signOut()
                         }
                     }
                 }
                 .sheet(isPresented: $showProfilePicker) {
-                    SelectProfilesSheet { selected in
+                    SelectProfilesSheet(onSelect: { selected in
                         profileSession.selectedProfileId = selected.id
                         showProfilePicker = false
 
                         // Load cached feed instantly for this profile
                         vm.loadFromCache(profileId: selected.id)
+                    })
+                }
+                .sheet(isPresented: $showAddProfile) {
+                    AddProfileLoaderView(onSaved: {
+                        profilesVM.load()
+                        showAddProfile = false
+                    })
+                }
+                .sheet(isPresented: $showEditProfile) {
+                    // Pass the currently selected profile name if available; fallback to empty
+                    let currentName = profilesVM.profiles.first(where: { $0.id == profileSession.selectedProfileId })?.name ?? ""
+                    EditProfileView(profileId: profileSession.selectedProfileId, initialName: currentName) { newName in
+                        // TODO: Persist the rename via ProfilesVM if supported
+                        profilesVM.load()
+                        showEditProfile = false
                     }
                 }
                 .onAppear {
@@ -117,5 +164,4 @@ struct MainAppView: View {
         await vm.refresh(profileId: pid)
     }
 }
-
 

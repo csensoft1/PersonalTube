@@ -307,3 +307,70 @@ extension AppDB {
         return sqlite3_step(stmt) == SQLITE_ROW
     }
 }
+extension AppDB {
+    func updateProfile(profileId: String, name: String, isKid: Bool) throws {
+        try open()
+        try run(
+            "UPDATE Profiles SET name = ?, isKid = ? WHERE id = ?;",
+            binds: { stmt in
+                bindText(stmt, 1, name)
+                sqlite3_bind_int(stmt, 2, isKid ? 1 : 0)
+                bindText(stmt, 3, profileId)
+            }
+        )
+    }
+
+    func replaceProfileSources(profileId: String, channelIds: [String], videoIds: [String], playlistIds: [String]) throws {
+        try open()
+        let now = ISO8601DateFormatter().string(from: Date())
+
+        try exec("BEGIN;")
+        do {
+            // Clear existing
+            try run("DELETE FROM ProfileSubscriptions WHERE profileId = ?;", binds: { stmt in bindText(stmt, 1, profileId) })
+            try run("DELETE FROM ProfileLikedVideos WHERE profileId = ?;", binds: { stmt in bindText(stmt, 1, profileId) })
+            try run("DELETE FROM ProfilePlaylists WHERE profileId = ?;", binds: { stmt in bindText(stmt, 1, profileId) })
+
+            // Insert new
+            for cid in Set(channelIds) {
+                try run(
+                    "INSERT INTO ProfileSubscriptions (id, profileId, channelId, createdAt) VALUES (?, ?, ?, ?);",
+                    binds: { stmt in
+                        bindText(stmt, 1, UUID().uuidString)
+                        bindText(stmt, 2, profileId)
+                        bindText(stmt, 3, cid)
+                        bindText(stmt, 4, now)
+                    }
+                )
+            }
+            for vid in Set(videoIds) {
+                try run(
+                    "INSERT INTO ProfileLikedVideos (id, profileId, videoId, createdAt) VALUES (?, ?, ?, ?);",
+                    binds: { stmt in
+                        bindText(stmt, 1, UUID().uuidString)
+                        bindText(stmt, 2, profileId)
+                        bindText(stmt, 3, vid)
+                        bindText(stmt, 4, now)
+                    }
+                )
+            }
+            for pid in Set(playlistIds) {
+                try run(
+                    "INSERT INTO ProfilePlaylists (id, profileId, playlistId, createdAt) VALUES (?, ?, ?, ?);",
+                    binds: { stmt in
+                        bindText(stmt, 1, UUID().uuidString)
+                        bindText(stmt, 2, profileId)
+                        bindText(stmt, 3, pid)
+                        bindText(stmt, 4, now)
+                    }
+                )
+            }
+
+            try exec("COMMIT;")
+        } catch {
+            try? exec("ROLLBACK;")
+            throw error
+        }
+    }
+}
+

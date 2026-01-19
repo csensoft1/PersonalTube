@@ -11,6 +11,7 @@ struct VideoPlayerWithListView: View {
     let videos: [YTVideo]
 
     @State private var selectedVideoId: String
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     init(videos: [YTVideo], initialVideoId: String? = nil) {
         self.videos = videos
@@ -18,33 +19,54 @@ struct VideoPlayerWithListView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Player
-            if !selectedVideoId.isEmpty {
-                YouTubePlayerView(videoId: selectedVideoId)
-                    .frame(height: 240) // adjust for your taste
-                    .background(Color.black)
+        Group {
+            if horizontalSizeClass == .compact {
+                // Portrait on iPhone (usually) — keep vertical layout
+                VStack(spacing: 0) {
+                    playerView
+                    Divider()
+                    listView
+                }
             } else {
-                Rectangle().fill(.black).frame(height: 240)
-            }
-
-            Divider()
-
-            // List
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(videos) { v in
-                        VideoRow(video: v, isSelected: v.id == selectedVideoId)
-                            .padding(.horizontal, 12)
-                            .onTapGesture {
-                                selectedVideoId = v.id
-                            }
-                        Divider().opacity(0.4)
+                // Landscape / wider size — split view with player on left and list on right
+                GeometryReader { geo in
+                    HStack(spacing: 0) {
+                        playerView
+                            .frame(width: geo.size.width * 0.55)
+                        Divider()
+                        listView
                     }
                 }
             }
         }
         .navigationTitle("Videos")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var playerView: some View {
+        Group {
+            if !selectedVideoId.isEmpty {
+                YouTubePlayerView(videoId: selectedVideoId)
+                    .frame(height: 240)
+                    .background(Color.black)
+            } else {
+                Rectangle().fill(.black).frame(height: 240)
+            }
+        }
+    }
+
+    private var listView: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(videos) { v in
+                    VideoRow(video: v, isSelected: v.id == selectedVideoId)
+                        .padding(.horizontal, 12)
+                        .onTapGesture {
+                            selectedVideoId = v.id
+                        }
+                    Divider().opacity(0.4)
+                }
+            }
+        }
     }
 }

@@ -13,8 +13,6 @@ struct SelectProfilesSheet: View {
 
     let onSelect: (Profile) -> Void
 
-    @State private var showAdd = false
-
     var body: some View {
         NavigationStack {
             List {
@@ -44,20 +42,8 @@ struct SelectProfilesSheet: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close") { dismiss() }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showAdd = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                }
             }
             .onAppear { vm.load() }
-            .sheet(isPresented: $showAdd) {
-                AddProfileLoaderView(onSaved: {
-                    vm.load()
-                })
-            }
         }
     }
 
@@ -89,3 +75,4 @@ struct SelectProfilesSheet: View {
         }
     }
 }
+
