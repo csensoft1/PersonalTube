@@ -5,17 +5,19 @@
 //  Created by Senthil Kumar Chandrasekaran on 1/16/26.
 //
 import SwiftUI
+import LocalAuthentication
 
 struct MainAppView: View {
     @EnvironmentObject var auth: AuthManager
     @EnvironmentObject var profileSession: ProfileSession
-
+    
     @StateObject private var vm = ProfileFeedVM()
     @State private var showProfilePicker = false
     @State private var showAddProfile = false
     @State private var showEditProfile = false
     @StateObject private var profilesVM = ProfilesVM()
-
+    @State private var isLocked = false
+    
     var body: some View {
         NavigationStack {
             content
@@ -23,9 +25,26 @@ struct MainAppView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button("Profile") { showProfilePicker = true }
+                        Button(action: { if !isLocked { showProfilePicker = true } }) {
+                            Text("Profile")
+                        }
+                        .disabled(isLocked)
                     }
-
+                    
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(action: {
+                            if isLocked {
+                                Task { await attemptUnlockWithBiometrics() }
+                            } else {
+                                // Lock immediately without authentication
+                                isLocked = true
+                            }
+                        }) {
+                            Image(systemName: isLocked ? "lock.fill" : "lock.open")
+                        }
+                        .accessibilityLabel(isLocked ? "Unlock" : "Lock")
+                    }
+                    
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
                             // Refresh action
@@ -38,7 +57,7 @@ struct MainAppView: View {
                                     Label("Refresh", systemImage: "arrow.clockwise")
                                 }
                             }
-                            .disabled(vm.isRefreshing || profileSession.selectedProfileId.isEmpty)
+                            .disabled(isLocked || vm.isRefreshing || profileSession.selectedProfileId.isEmpty)
                             
                             // Add profile action
                             Button {
@@ -46,15 +65,16 @@ struct MainAppView: View {
                             } label: {
                                 Label("Add Profile", systemImage: "person.badge.plus")
                             }
-
+                            .disabled(isLocked)
+                            
                             // Edit profile action
                             Button {
                                 showEditProfile = true
                             } label: {
                                 Label("Edit Profile", systemImage: "pencil")
                             }
-                            .disabled(profileSession.selectedProfileId.isEmpty)
-
+                            .disabled(isLocked || profileSession.selectedProfileId.isEmpty)
+                            
                             // Sign out action
                             Button(role: .destructive) {
                                 profileSession.clear()
@@ -62,6 +82,7 @@ struct MainAppView: View {
                             } label: {
                                 Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
                             }
+                            .disabled(isLocked)
                         } label: {
                             if vm.isRefreshing {
                                 // Show spinner in the menu trigger to mirror iMessage behavior during activity
@@ -73,13 +94,14 @@ struct MainAppView: View {
                                 .accessibilityLabel("More")
                             }
                         }
+                        .disabled(isLocked)
                     }
                 }
                 .sheet(isPresented: $showProfilePicker) {
                     SelectProfilesSheet(onSelect: { selected in
                         profileSession.selectedProfileId = selected.id
                         showProfilePicker = false
-
+                        
                         // Load cached feed instantly for this profile
                         vm.loadFromCache(profileId: selected.id)
                     })
@@ -114,14 +136,14 @@ struct MainAppView: View {
                 }
         }
     }
-
+    
     @ViewBuilder
     private var content: some View {
         if profileSession.selectedProfileId.isEmpty {
             VStack(spacing: 12) {
                 Text("No profile selected")
                     .font(.headline)
-                Button("Select Profile") { showProfilePicker = true }
+                Button("Select Profile") { if !isLocked { showProfilePicker = true } }
                     .buttonStyle(.borderedProminent)
             }
             .padding()
@@ -135,7 +157,7 @@ struct MainAppView: View {
                     thumbnailURL: URL(string: $0.thumbnailURL ?? "")
                 )
             }
-
+            
             VideoPlayerWithListView(videos: videosForUI)
                 .id(profileSession.selectedProfileId)
         } else {
@@ -147,7 +169,7 @@ struct MainAppView: View {
                     Text("No cached feed yet.")
                         .foregroundStyle(.secondary)
                 }
-
+                
                 Button("Refresh") {
                     Task { await refreshNow() }
                 }
@@ -157,11 +179,48 @@ struct MainAppView: View {
             .padding()
         }
     }
-
+    
     private func refreshNow() async {
         let pid = profileSession.selectedProfileId
         guard !pid.isEmpty else { return }
         await vm.refresh(profileId: pid)
+    }
+    
+    @MainActor
+    func attemptUnlockWithBiometrics() async {
+        let context = LAContext()
+        context.localizedCancelTitle = "Cancel"
+        context.localizedFallbackTitle = "Use Passcode" // shown on Face ID prompt
+        
+        var error: NSError?
+        
+        // 1) Try Face ID / Touch ID first
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
+            do {
+                let ok = try await context.evaluatePolicy(
+                    .deviceOwnerAuthenticationWithBiometrics,
+                    localizedReason: "Unlock with Face ID"
+                )
+                if ok { isLocked = false }
+                return
+            } catch {
+                // If user taps "Use Passcode" or biometrics unavailable mid-flight, we can fall back below
+            }
+        }
+        
+        // 2) Optional fallback to passcode (if you want)
+        var error2: NSError?
+        if context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error2) {
+            do {
+                let ok = try await context.evaluatePolicy(
+                    .deviceOwnerAuthentication,
+                    localizedReason: "Unlock to continue"
+                )
+                if ok { isLocked = false }
+            } catch {
+                // keep locked
+            }
+        }
     }
 }
 
