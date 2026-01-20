@@ -17,6 +17,7 @@ struct MainAppView: View {
     @State private var showEditProfile = false
     @StateObject private var profilesVM = ProfilesVM()
     @State private var isLocked = false
+    @State private var listRefreshID = UUID()
     
     var body: some View {
         NavigationStack {
@@ -159,7 +160,7 @@ struct MainAppView: View {
             }
             
             VideoPlayerWithListView(videos: videosForUI)
-                .id(profileSession.selectedProfileId)
+                .id(listRefreshID)
         } else {
             VStack(spacing: 12) {
                 if let error = vm.error {
@@ -184,6 +185,7 @@ struct MainAppView: View {
         let pid = profileSession.selectedProfileId
         guard !pid.isEmpty else { return }
         await vm.refresh(profileId: pid)
+        await MainActor.run { listRefreshID = UUID() }
     }
     
     @MainActor

@@ -7,6 +7,103 @@
 
 import Foundation
 
+struct SubscriptionsResponse: Decodable {
+    let nextPageToken: String?
+    let items: [Item]
+
+    struct Item: Decodable {
+        let snippet: Snippet
+        struct Snippet: Decodable {
+            let title: String
+            let resourceId: ResourceId
+            struct ResourceId: Decodable {
+                let channelId: String
+            }
+        }
+    }
+}
+
+struct LikedVideosResponse: Decodable {
+    let nextPageToken: String?
+    let items: [Item]
+
+    struct Item: Decodable {
+        let id: String
+        let snippet: Snippet
+        struct Snippet: Decodable {
+            let title: String
+        }
+    }
+}
+
+struct PlaylistsResponse: Decodable {
+    let nextPageToken: String?
+    let items: [Item]
+
+    struct Item: Decodable {
+        let id: String
+        let snippet: Snippet
+        struct Snippet: Decodable {
+            let title: String
+        }
+    }
+}
+
+struct SearchResponse: Decodable {
+    let nextPageToken: String?
+    let items: [Item]
+
+    struct Item: Decodable {
+        let id: VideoId
+        struct VideoId: Decodable { let videoId: String? }
+    }
+}
+
+struct LikedVideosIdsResponse: Decodable {
+    let nextPageToken: String?
+    let items: [Item]
+    struct Item: Decodable { let id: String }
+}
+
+struct PlaylistItemsResponse: Decodable {
+    let nextPageToken: String?
+    let items: [Item]
+
+    struct Item: Decodable {
+        let snippet: Snippet
+        struct Snippet: Decodable {
+            let resourceId: ResourceId
+            struct ResourceId: Decodable { let videoId: String? }
+        }
+    }
+}
+
+struct VideosHydrateResponse: Decodable {
+    let items: [Item]
+
+    struct Item: Decodable {
+        let id: String
+        let snippet: Snippet
+        let contentDetails: ContentDetails
+
+        struct Snippet: Decodable {
+            let title: String
+            let channelTitle: String
+            let publishedAt: String
+            let thumbnails: Thumbnails?
+            struct Thumbnails: Decodable {
+                let medium: Thumb?
+                let high: Thumb?
+                struct Thumb: Decodable { let url: String }
+            }
+        }
+
+        struct ContentDetails: Decodable {
+            let duration: String
+        }
+    }
+}
+
 enum YTAPIError: Error {
     case noAccessToken
     case badStatus(Int, String)
@@ -22,6 +119,7 @@ final class YouTubeAPI {
 
     private func makeRequest(url: URL) throws -> URLRequest {
         guard let token = accessTokenProvider?(), !token.isEmpty else {
+            print("No Access Token")
             throw YTAPIError.noAccessToken
         }
         var req = URLRequest(url: url)
@@ -51,22 +149,6 @@ final class YouTubeAPI {
 
 extension YouTubeAPI {
 
-    struct SubscriptionsResponse: Decodable {
-        let nextPageToken: String?
-        let items: [Item]
-
-        struct Item: Decodable {
-            let snippet: Snippet
-            struct Snippet: Decodable {
-                let title: String
-                let resourceId: ResourceId
-                struct ResourceId: Decodable {
-                    let channelId: String
-                }
-            }
-        }
-    }
-
     func fetchAllSubscriptions(maxPerPage: Int = 50) async throws -> [ChannelItem] {
         var out: [ChannelItem] = []
         var pageToken: String? = nil
@@ -90,19 +172,6 @@ extension YouTubeAPI {
 }
 
 extension YouTubeAPI {
-
-    struct LikedVideosResponse: Decodable {
-        let nextPageToken: String?
-        let items: [Item]
-
-        struct Item: Decodable {
-            let id: String
-            let snippet: Snippet
-            struct Snippet: Decodable {
-                let title: String
-            }
-        }
-    }
 
     func fetchAllLikedVideos(maxPerPage: Int = 50) async throws -> [LikedVideoItem] {
         var out: [LikedVideoItem] = []
@@ -128,19 +197,6 @@ extension YouTubeAPI {
 
 extension YouTubeAPI {
 
-    struct PlaylistsResponse: Decodable {
-        let nextPageToken: String?
-        let items: [Item]
-
-        struct Item: Decodable {
-            let id: String
-            let snippet: Snippet
-            struct Snippet: Decodable {
-                let title: String
-            }
-        }
-    }
-
     func fetchAllPlaylists(maxPerPage: Int = 50) async throws -> [PlaylistItem] {
         var out: [PlaylistItem] = []
         var pageToken: String? = nil
@@ -164,16 +220,6 @@ extension YouTubeAPI {
 }
 
 extension YouTubeAPI {
-    struct SearchResponse: Decodable {
-        let nextPageToken: String?
-        let items: [Item]
-
-        struct Item: Decodable {
-            let id: VideoId
-            struct VideoId: Decodable { let videoId: String? }
-        }
-    }
-
     func fetchRecentVideoIdsForChannel(channelId: String, maxResults: Int = 25) async throws -> [String] {
         var comps = URLComponents(string: "https://www.googleapis.com/youtube/v3/search")!
         comps.queryItems = [
@@ -189,12 +235,6 @@ extension YouTubeAPI {
 }
 
 extension YouTubeAPI {
-    struct LikedVideosIdsResponse: Decodable {
-        let nextPageToken: String?
-        let items: [Item]
-        struct Item: Decodable { let id: String }
-    }
-
     func fetchRecentLikedVideoIds(limit: Int = 50) async throws -> [String] {
         // videos.list supports maxResults (50 max)
         var comps = URLComponents(string: "https://www.googleapis.com/youtube/v3/videos")!
@@ -209,19 +249,6 @@ extension YouTubeAPI {
 }
 
 extension YouTubeAPI {
-    struct PlaylistItemsResponse: Decodable {
-        let nextPageToken: String?
-        let items: [Item]
-
-        struct Item: Decodable {
-            let snippet: Snippet
-            struct Snippet: Decodable {
-                let resourceId: ResourceId
-                struct ResourceId: Decodable { let videoId: String? }
-            }
-        }
-    }
-
     func fetchRecentPlaylistVideoIds(playlistId: String, maxResults: Int = 50) async throws -> [String] {
         var comps = URLComponents(string: "https://www.googleapis.com/youtube/v3/playlistItems")!
         comps.queryItems = [
@@ -235,26 +262,22 @@ extension YouTubeAPI {
 }
 
 extension YouTubeAPI {
-    struct VideosHydrateResponse: Decodable {
-        let items: [Item]
-        struct Item: Decodable {
-            let id: String
-            let snippet: Snippet
-            struct Snippet: Decodable {
-                let title: String
-                let channelTitle: String
-                let publishedAt: String
-                let thumbnails: Thumbnails?
-                struct Thumbnails: Decodable {
-                    let medium: Thumb?
-                    let high: Thumb?
-                    struct Thumb: Decodable { let url: String }
-                }
-            }
+    
+    private func isoDurationSeconds(_ iso: String) -> Int {
+        // Examples: PT45S, PT2M13S, PT1H3M5S
+        var seconds = 0
+        let pattern = #"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?"#
+        let regex = try! NSRegularExpression(pattern: pattern)
+
+        if let match = regex.firstMatch(in: iso, range: NSRange(iso.startIndex..., in: iso)) {
+            if let r = Range(match.range(at: 1), in: iso), let h = Int(iso[r]) { seconds += h * 3600 }
+            if let r = Range(match.range(at: 2), in: iso), let m = Int(iso[r]) { seconds += m * 60 }
+            if let r = Range(match.range(at: 3), in: iso), let s = Int(iso[r]) { seconds += s }
         }
+        return seconds
     }
 
-    func hydrateVideos(ids: [String]) async throws -> [FeedVideo] {
+    func hydrateVideos(ids: [String], excludeShorts: Bool = true) async throws -> [FeedVideo] {
         guard !ids.isEmpty else { return [] }
 
         let iso = ISO8601DateFormatter()
@@ -262,13 +285,11 @@ extension YouTubeAPI {
 
         func parseDate(_ s: String) -> Date? {
             if let d = iso.date(from: s) { return d }
-            // fallback if no fractional seconds
             let iso2 = ISO8601DateFormatter()
             iso2.formatOptions = [.withInternetDateTime]
             return iso2.date(from: s)
         }
 
-        // Chunk into 50 ids per request
         let chunks: [[String]] = stride(from: 0, to: ids.count, by: 50).map {
             Array(ids[$0..<min($0+50, ids.count)])
         }
@@ -278,14 +299,22 @@ extension YouTubeAPI {
                 group.addTask {
                     var comps = URLComponents(string: "https://www.googleapis.com/youtube/v3/videos")!
                     comps.queryItems = [
-                        .init(name: "part", value: "snippet"),
+                        .init(name: "part", value: "snippet,contentDetails"), // ✅ add contentDetails
                         .init(name: "id", value: chunk.joined(separator: ","))
                     ]
+
                     let res: VideosHydrateResponse = try await self.fetch(comps.url!, as: VideosHydrateResponse.self)
 
                     return res.items.compactMap { item in
+                        // ✅ filter shorts by duration
+                        if excludeShorts {
+                            let secs = self.isoDurationSeconds(item.contentDetails.duration)
+                            if secs <= 60 { return nil }  // treat <= 60s as Shorts
+                        }
+
                         guard let published = parseDate(item.snippet.publishedAt) else { return nil }
                         let thumb = item.snippet.thumbnails?.high?.url ?? item.snippet.thumbnails?.medium?.url
+
                         return FeedVideo(
                             id: item.id,
                             title: item.snippet.title,

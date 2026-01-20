@@ -3,6 +3,37 @@
    version = "1.0">
    <ContextStates>
       <ContextState
+         contextName = "YTLibraryVM.loadAll():YTLibraryVM.swift">
+         <PersistentStrings>
+            <PersistentString
+               value = "channels">
+            </PersistentString>
+            <PersistentString
+               value = "liked">
+            </PersistentString>
+            <PersistentString
+               value = "c">
+            </PersistentString>
+            <PersistentString
+               value = "playlists">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "ProfileFeedVM.refresh(profileId:):ProfileFeedVM.swift">
+      </ContextState>
+      <ContextState
+         contextName = "RootGateView.body.getter:RootGateView.swift">
+         <PersistentStrings>
+            <PersistentString
+               value = "auth">
+            </PersistentString>
+            <PersistentString
+               value = "auth.accesstoken()">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
          contextName = "closure #1 in SelectProfilesSheet.AddProfileLoaderView.body.getter:SelectProfilesSheet.swift">
          <PersistentStrings>
             <PersistentString
@@ -17,13 +48,10 @@
          </PersistentStrings>
       </ContextState>
       <ContextState
-         contextName = "YTLibraryVM.loadAll():YTLibraryVM.swift">
+         contextName = "closure #2 in closure #3 in closure #1 in closure #1 in EditProfileView.body.getter:EditProfileView.swift">
          <PersistentStrings>
             <PersistentString
-               value = "c">
-            </PersistentString>
-            <PersistentString
-               value = "channels">
+               value = "libVM.channels">
             </PersistentString>
          </PersistentStrings>
       </ContextState>
@@ -44,13 +72,10 @@
          </PersistentStrings>
       </ContextState>
       <ContextState
-         contextName = "RootGateView.body.getter:RootGateView.swift">
+         contextName = "EditProfileView.loadLibrary():EditProfileView.swift">
          <PersistentStrings>
             <PersistentString
-               value = "auth">
-            </PersistentString>
-            <PersistentString
-               value = "auth.accesstoken()">
+               value = "selectedChannelIds">
             </PersistentString>
          </PersistentStrings>
       </ContextState>

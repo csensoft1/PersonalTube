@@ -14,7 +14,7 @@ final class AuthManager: ObservableObject {
     @Published private(set) var state: State = .checking
 
     // Keep it minimal
-    private let youtubeReadOnlyScope = "https://www.googleapis.com/auth/youtube.readonly"
+    let youtubeReadOnlyScope = "https://www.googleapis.com/auth/youtube.readonly"
 
     func bootstrap() async {
         // Try restore silently
@@ -23,10 +23,19 @@ final class AuthManager: ObservableObject {
                 guard let self else { continuation.resume(); return }
                 if let _ = error {
                     self.state = .signedOut
+                    YouTubeAPI.shared.accessTokenProvider = { nil }
                     continuation.resume()
                     return
                 }
-                self.state = (user != nil) ? .signedIn : .signedOut
+                if let _ = user {
+                    self.state = .signedIn
+                    YouTubeAPI.shared.accessTokenProvider = { [weak self] in
+                        self?.accessToken()
+                    }
+                } else {
+                    self.state = .signedOut
+                    YouTubeAPI.shared.accessTokenProvider = { nil }
+                }
                 continuation.resume()
             }
         }
@@ -46,25 +55,32 @@ final class AuthManager: ObservableObject {
             guard let self else { return }
             if let error = error {
                 self.state = .error(error.localizedDescription)
+                YouTubeAPI.shared.accessTokenProvider = { nil }
                 return
             }
-            self.state = (result?.user != nil) ? .signedIn : .signedOut
-            YouTubeAPI.shared.accessTokenProvider = { [weak self] in
-                self?.accessToken()   // your existing method that returns tokenString
+            if result?.user != nil {
+                self.state = .signedIn
+                YouTubeAPI.shared.accessTokenProvider = { [weak self] in
+                    self?.accessToken()
+                }
+            } else {
+                self.state = .signedOut
+                YouTubeAPI.shared.accessTokenProvider = { nil }
             }
-
         }
     }
 
     func signOut() {
         GIDSignIn.sharedInstance.signOut()
         state = .signedOut
+        YouTubeAPI.shared.accessTokenProvider = { nil }
     }
 
     func disconnect() {
         // Revokes the granted scopes on Google side
         GIDSignIn.sharedInstance.disconnect { [weak self] _ in
             self?.state = .signedOut
+            YouTubeAPI.shared.accessTokenProvider = { nil }
         }
     }
 
@@ -73,4 +89,65 @@ final class AuthManager: ObservableObject {
     }
 }
 
+extension AuthManager {
+    /// Ensures a valid access token exists before running an async operation.
+    /// If no token is available, attempts Google Sign-In using the provided presentingVC.
+    /// - Parameters:
+    ///   - presentingVC: A UIViewController to present Google Sign-In if needed.
+    ///   - operation: The async operation to run once signed in (or already signed in).
+    @MainActor
+    func runRequiringSignIn<T>(
+        presentingVC: UIViewController?,
+        operation: @escaping () async throws -> T
+    ) async throws -> T {
+        // If we already have a token, run immediately.
+        if let token = YouTubeAPI.shared.accessTokenProvider?(), !token.isEmpty {
+            return try await operation()
+        }
+
+        // Otherwise, try to sign in if we can present.
+        guard let presentingVC else {
+            throw NSError(domain: "Auth", code: 1, userInfo: [NSLocalizedDescriptionKey: "Sign-in required"])
+        }
+        // Bridge the callback-based sign-in to async.
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            guard let clientID = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String else {
+                continuation.resume(throwing: NSError(domain: "Auth", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing GIDClientID in Info.plist"]))
+                return
+            }
+            GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
+
+            GIDSignIn.sharedInstance.signIn(
+                withPresenting: presentingVC,
+                hint: nil,
+                additionalScopes: [youtubeReadOnlyScope]
+            ) { [weak self] result, error in
+                guard let self else {
+                    continuation.resume(throwing: NSError(domain: "Auth", code: 2, userInfo: [NSLocalizedDescriptionKey: "Auth manager deallocated"]))
+                    return
+                }
+                if let error = error {
+                    self.state = .error(error.localizedDescription)
+                    YouTubeAPI.shared.accessTokenProvider = { nil }
+                    continuation.resume(throwing: error)
+                    return
+                }
+                if result?.user != nil {
+                    self.state = .signedIn
+                    YouTubeAPI.shared.accessTokenProvider = { [weak self] in
+                        self?.accessToken()
+                    }
+                    continuation.resume()
+                } else {
+                    self.state = .signedOut
+                    YouTubeAPI.shared.accessTokenProvider = { nil }
+                    continuation.resume(throwing: NSError(domain: "Auth", code: 3, userInfo: [NSLocalizedDescriptionKey: "User cancelled sign-in"]))
+                }
+            }
+        }
+
+        // After successful sign-in, run the operation.
+        return try await operation()
+    }
+}
 
