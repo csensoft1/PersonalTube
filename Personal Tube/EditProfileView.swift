@@ -16,6 +16,16 @@ struct EditProfileView: View {
     @State private var selectedChannelIds: Set<String> = []
     @State private var selectedPlaylistIds: Set<String> = []
     @State private var includeLikes: Bool = false
+    @State private var channelSearch: String = ""
+    @State private var playlistSearch: String = ""
+    @State private var likedSearch: String = ""
+    @FocusState private var likedSearchFocused: Bool
+    @FocusState private var channelSearchFocused: Bool
+    @FocusState private var playlistSearchFocused: Bool
+
+    @State private var showSubscriptions: Bool = true
+    @State private var showPlaylists: Bool = true
+    @State private var showLiked: Bool = true
 
     // Library loading (mirrors AddProfileLoaderView)
     @State private var libVM = YTLibraryVM()
@@ -55,46 +65,129 @@ struct EditProfileView: View {
                             Toggle("Kid profile", isOn: $isKid)
                         }
 
-                        Section("Subscriptions") {
-                            if libVM.channels.isEmpty {
-                                Text("No channels found").foregroundStyle(.secondary)
-                            } else {
-                                ForEach(libVM.channels, id: \.id) { ch in
-                                    Toggle(isOn: Binding(
-                                        get: { selectedChannelIds.contains(ch.id) },
-                                        set: { newValue in
-                                            if newValue { selectedChannelIds.insert(ch.id) } else { selectedChannelIds.remove(ch.id) }
+                        Section {
+                            if showSubscriptions {
+                                HStack {
+                                    Text("Search")
+                                    TextField("Search channels", text: $channelSearch)
+                                        .textFieldStyle(.roundedBorder)
+                                        .focused($channelSearchFocused)
+                                        .onSubmit { channelSearchFocused = false }
+                                }
+
+                                if libVM.channels.isEmpty {
+                                    Text("No channels found").foregroundStyle(.secondary)
+                                } else {
+                                    ForEach(libVM.channels.filter { channelSearch.isEmpty || $0.title.localizedCaseInsensitiveContains(channelSearch) }, id: \.id) { ch in
+                                        Toggle(isOn: Binding(
+                                            get: { selectedChannelIds.contains(ch.id) },
+                                            set: { newValue in
+                                                if newValue { selectedChannelIds.insert(ch.id) } else { selectedChannelIds.remove(ch.id) }
+                                            }
+                                        )) {
+                                            Text(ch.title)
                                         }
-                                    )) {
-                                        Text(ch.title)
                                     }
                                 }
                             }
+                        } header: {
+                            Button {
+                                withAnimation(.easeInOut) { showSubscriptions.toggle() }
+                            } label: {
+                                HStack {
+                                    Image(systemName: "chevron.right")
+                                        .rotationEffect(.degrees(showSubscriptions ? 90 : 0))
+                                        .animation(.easeInOut(duration: 0.2), value: showSubscriptions)
+                                    Text("Subscriptions").font(.headline)
+                                    Spacer()
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
                         }
 
-                        Section("Playlists") {
-                            if libVM.playlists.isEmpty {
-                                Text("No playlists found").foregroundStyle(.secondary)
-                            } else {
-                                ForEach(libVM.playlists, id: \.id) { pl in
-                                    Toggle(isOn: Binding(
-                                        get: { selectedPlaylistIds.contains(pl.id) },
-                                        set: { newValue in
-                                            if newValue { selectedPlaylistIds.insert(pl.id) } else { selectedPlaylistIds.remove(pl.id) }
+                        Section {
+                            if showPlaylists {
+                                HStack {
+                                    Text("Search")
+                                    TextField("Search playlists", text: $playlistSearch)
+                                        .textFieldStyle(.roundedBorder)
+                                        .focused($playlistSearchFocused)
+                                        .onSubmit { playlistSearchFocused = false }
+                                }
+
+                                if libVM.playlists.isEmpty {
+                                    Text("No playlists found").foregroundStyle(.secondary)
+                                } else {
+                                    ForEach(libVM.playlists.filter { playlistSearch.isEmpty || $0.title.localizedCaseInsensitiveContains(playlistSearch) }, id: \.id) { pl in
+                                        Toggle(isOn: Binding(
+                                            get: { selectedPlaylistIds.contains(pl.id) },
+                                            set: { newValue in
+                                                if newValue { selectedPlaylistIds.insert(pl.id) } else { selectedPlaylistIds.remove(pl.id) }
+                                            }
+                                        )) {
+                                            Text(pl.title)
                                         }
-                                    )) {
-                                        Text(pl.title)
                                     }
                                 }
                             }
+                        } header: {
+                            Button {
+                                withAnimation(.easeInOut) { showPlaylists.toggle() }
+                            } label: {
+                                HStack {
+                                    Image(systemName: "chevron.right")
+                                        .rotationEffect(.degrees(showPlaylists ? 90 : 0))
+                                        .animation(.easeInOut(duration: 0.2), value: showPlaylists)
+                                    Text("Playlists").font(.headline)
+                                    Spacer()
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
                         }
 
-                        Section("Liked Videos") {
-                            Toggle("Include liked videos", isOn: $includeLikes)
-                            if includeLikes {
-                                Text("Liked videos will be included in this profile's feed.")
-                                    .font(.footnote).foregroundStyle(.secondary)
+                        Section {
+                            if showLiked {
+                                HStack {
+                                    Text("Search")
+                                    TextField("Search liked videos", text: $likedSearch)
+                                        .textFieldStyle(.roundedBorder)
+                                        .focused($likedSearchFocused)
+                                        .onSubmit { likedSearchFocused = false }
+                                }
+
+                                Toggle("Include liked videos", isOn: $includeLikes)
+                                if includeLikes {
+                                    let filteredLiked = libVM.liked.filter { likedSearch.isEmpty || $0.title.localizedCaseInsensitiveContains(likedSearch) }
+                                    if filteredLiked.isEmpty {
+                                        Text("No liked videos match your search.")
+                                            .foregroundStyle(.secondary)
+                                    } else {
+                                        ForEach(filteredLiked, id: \.id) { v in
+                                            Text(v.title)
+                                        }
+                                    }
+                                } else {
+                                    Text("Liked videos will be included in this profile's feed.")
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
+                        } header: {
+                            Button {
+                                withAnimation(.easeInOut) { showLiked.toggle() }
+                            } label: {
+                                HStack {
+                                    Image(systemName: "chevron.right")
+                                        .rotationEffect(.degrees(showLiked ? 90 : 0))
+                                        .animation(.easeInOut(duration: 0.2), value: showLiked)
+                                    Text("Liked Videos").font(.headline)
+                                    Spacer()
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
                         }
 
                         if let saveError {
@@ -178,3 +271,4 @@ struct EditProfileView: View {
 #Preview {
     EditProfileView(profileId: "demo", initialName: "Jane Doe", onSaved: { _ in })
 }
+
