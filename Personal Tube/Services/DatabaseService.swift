@@ -374,3 +374,31 @@ extension AppDB {
     }
 }
 
+extension AppDB {
+    /// Deletes a profile and all of its related data via foreign key cascades.
+    /// - Parameter id: The profile id to delete.
+    func deleteProfile(id: String) throws {
+        try open()
+        try exec("BEGIN;")
+        do {
+            // Delete the profile row; related rows cascade via FK constraints.
+            try run(
+                "DELETE FROM Profiles WHERE id = ?;",
+                binds: { stmt in
+                    bindText(stmt, 1, id)
+                }
+            )
+            // Also clear any cached feed for this profile (in case FK isn't set there)
+            try run(
+                "DELETE FROM ProfileFeedCache WHERE profileId = ?;",
+                binds: { stmt in
+                    bindText(stmt, 1, id)
+                }
+            )
+            try exec("COMMIT;")
+        } catch {
+            try? exec("ROLLBACK;")
+            throw error
+        }
+    }
+}

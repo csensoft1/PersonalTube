@@ -18,6 +18,8 @@ struct MainAppView: View {
     @StateObject private var profilesVM = ProfilesVM()
     @State private var isLocked = false
     @State private var listRefreshID = UUID()
+    @State private var showDeleteConfirm = false
+    @State private var isDeleting = false
     
     var body: some View {
         NavigationStack {
@@ -75,6 +77,18 @@ struct MainAppView: View {
                                 Label("Edit Profile", systemImage: "pencil")
                             }
                             .disabled(isLocked || profileSession.selectedProfileId.isEmpty)
+                            
+                            // Delete profile action
+                            Button(role: .destructive) {
+                                showDeleteConfirm = true
+                            } label: {
+                                if isDeleting {
+                                    Label("Deleting…", systemImage: "trash")
+                                } else {
+                                    Label("Delete Profile", systemImage: "trash")
+                                }
+                            }
+                            .disabled(isLocked || profileSession.selectedProfileId.isEmpty || isDeleting)
                             
                             // Sign out action
                             Button(role: .destructive) {
@@ -135,6 +149,28 @@ struct MainAppView: View {
                         vm.loadFromCache(profileId: newId)
                     }
                 }
+                .alert("Delete Profile?", isPresented: $showDeleteConfirm) {
+                    Button("Cancel", role: .cancel) { }
+                    Button("Delete", role: .destructive) {
+                        Task { await deleteSelectedProfile() }
+                    }
+                } message: {
+                    let currentName: String = {
+                        let pid = profileSession.selectedProfileId
+                        guard !pid.isEmpty else { return "this profile" }
+                        do {
+                            try AppDB.shared.open()
+                            let profiles = try AppDB.shared.fetchProfiles()
+                            if let p = profiles.first(where: { $0.id == pid }) {
+                                return p.name
+                            }
+                        } catch {
+                            // ignore and fall back to in-memory cache
+                        }
+                        return profilesVM.profiles.first(where: { $0.id == pid })?.name ?? "this"
+                    }()
+                    Text("This will permanently delete \(currentName) profile and its cached feed.")
+                }
         }
     }
     
@@ -186,6 +222,65 @@ struct MainAppView: View {
         guard !pid.isEmpty else { return }
         await vm.refresh(profileId: pid)
         await MainActor.run { listRefreshID = UUID() }
+    }
+    
+    @MainActor
+    private func deleteSelectedProfile() async {
+        guard !isDeleting else { return }
+        let pid = profileSession.selectedProfileId
+        guard !pid.isEmpty else { return }
+        isDeleting = true
+        defer { isDeleting = false }
+
+        // Reuse the biometric approach similar to attemptUnlockWithBiometrics()
+        let context = LAContext()
+        context.localizedCancelTitle = "Cancel"
+        context.localizedFallbackTitle = "Use Passcode"
+
+        var authError: NSError?
+        var authenticated = false
+
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &authError) {
+            do {
+                authenticated = try await context.evaluatePolicy(
+                    .deviceOwnerAuthenticationWithBiometrics,
+                    localizedReason: "Confirm deletion with Face ID"
+                )
+            } catch {
+                authenticated = false
+            }
+        }
+
+        // Fallback to passcode if available
+        if !authenticated {
+            var passcodeError: NSError?
+            if context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &passcodeError) {
+                do {
+                    authenticated = try await context.evaluatePolicy(
+                        .deviceOwnerAuthentication,
+                        localizedReason: "Confirm deletion"
+                    )
+                } catch {
+                    authenticated = false
+                }
+            }
+        }
+
+        guard authenticated else { return }
+
+        // Perform deletion
+        do {
+            try AppDB.shared.open()
+            try AppDB.shared.deleteProfile(id: pid)
+            // Clear selection and refresh local state
+            profileSession.clear()
+            profilesVM.load()
+            vm.feed = []
+            vm.error = nil
+        } catch {
+            // Optionally surface an error via vm.error
+            vm.error = error.localizedDescription
+        }
     }
     
     @MainActor
