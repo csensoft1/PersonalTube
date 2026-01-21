@@ -1,7 +1,11 @@
 import SwiftUI
 
 struct AddProfileLoaderView: View {
+    @Environment(\.dismiss) private var dismiss
     var onSaved: () -> Void
+
+    @State private var isSaving: Bool = false
+    @State private var errorMessage: String?
 
     // Library loading
     @State private var libVM = YTLibraryVM()
@@ -50,6 +54,11 @@ struct AddProfileLoaderView: View {
                                 .textInputAutocapitalization(.words)
                                 .autocorrectionDisabled()
                             Toggle("Kid profile", isOn: $isKid)
+                            if let errorMessage {
+                                Text(errorMessage)
+                                    .font(.footnote)
+                                    .foregroundStyle(.red)
+                            }
                         }
 
                         Section {
@@ -183,14 +192,53 @@ struct AddProfileLoaderView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { onSaved() }
+                    Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { onSaved() }
-                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button(isSaving ? "Saving…" : "Save") {
+                        Task { await save() }
+                    }
+                    .disabled(isSaving || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
+    }
+    
+    @MainActor
+    private func save() async {
+        guard !isSaving else { return }
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        isSaving = true
+        errorMessage = nil
+        do {
+            try AppDB.shared.open()
+            try AppDB.shared.createProfile(
+                name: trimmed,
+                isKid: isKid,
+                channelIds: chosenChannelIds,
+                videoIds: chosenVideoIds,
+                playlistIds: chosenPlaylistIds
+            )
+            onSaved()
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isSaving = false
+    }
+
+    private var chosenChannelIds: [String] {
+        Array(selectedChannelIds)
+    }
+
+    private var chosenPlaylistIds: [String] {
+        Array(selectedPlaylistIds)
+    }
+
+    private var chosenVideoIds: [String] {
+        includeLikes ? libVM.liked.map { $0.id } : []
     }
 
     @MainActor
