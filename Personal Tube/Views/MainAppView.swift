@@ -29,7 +29,29 @@ struct MainAppView: View {
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         Button(action: { if !isLocked { showProfilePicker = true } }) {
-                            Text("Profile")
+                            let profileButtonTitle: String = {
+                                let pid = profileSession.selectedProfileId
+                                guard !pid.isEmpty else { return "Profile" }
+                                do {
+                                    try AppDB.shared.open()
+                                    let profiles = try AppDB.shared.fetchProfiles()
+                                    if let p = profiles.first(where: { $0.id == pid }) {
+                                        return p.name
+                                    }
+                                } catch {
+                                    // ignore and fall back to in-memory cache
+                                }
+                                return profilesVM.profiles.first(where: { $0.id == pid })?.name ?? "Profile"
+                            }()
+                            Text(profileButtonTitle)
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.primary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Capsule().fill(.ultraThinMaterial)
+                                )
                         }
                         .disabled(isLocked)
                     }
