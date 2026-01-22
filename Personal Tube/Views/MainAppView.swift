@@ -56,7 +56,7 @@ struct MainAppView: View {
                         .disabled(isLocked)
                     }
                     
-                    ToolbarItem(placement: .topBarLeading) {
+                    ToolbarItem(placement: .topBarTrailing) {
                         Button(action: {
                             if isLocked {
                                 Task { await attemptUnlockWithBiometrics() }
